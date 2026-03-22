@@ -1,0 +1,472 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Nachkauf-Leiter</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;1,400&family=DM+Sans:wght@400;500&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+--bg:#0a0a0b;--surface:#141416;--card:#1a1a1e;--border:#2a2a2e;
+--text:#e8e6e1;--muted:#8a8880;--dim:#5a5850;
+--gold-50:#faeeda;--gold-100:#fac775;--gold-200:#ef9f27;--gold-400:#ba7517;--gold-600:#854f0b;--gold-800:#633806;
+--amber:#ef9f27;--copper:#c4813d;--warm:#d4a84b;
+--red-light:#fcebeb;--red:#e24b4a;--red-dark:#a32d2d;--red-deep:#791f1f;
+--coral-light:#faece7;--coral:#d85a30;--coral-dark:#993c1d;
+--green:#5dca75;--green-dark:#0f6e36;
+--teal:#1d9e75;
+--radius:12px;--radius-sm:8px;
+}
+body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min-height:100vh;overflow-x:hidden}
+h1,h2,h3,.display{font-family:'Cormorant Garamond',serif}
+
+.alert-bar{position:fixed;top:0;left:0;right:0;z-index:100;padding:12px 24px;display:flex;align-items:center;justify-content:space-between;backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border-bottom:1px solid var(--border);transition:background .5s}
+.alert-bar.chill{background:rgba(10,10,11,.85)}
+.alert-bar.warn{background:rgba(186,117,23,.15)}
+.alert-bar.danger{background:rgba(226,75,74,.15)}
+.alert-bar.extreme{background:rgba(121,31,31,.25)}
+.alert-status{display:flex;align-items:center;gap:10px}
+.alert-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+.alert-dot.green{background:var(--green);box-shadow:0 0 8px var(--green)}
+.alert-dot.amber{background:var(--amber);box-shadow:0 0 8px var(--amber)}
+.alert-dot.red{background:var(--red);box-shadow:0 0 8px var(--red)}
+.alert-dot.deep-red{background:var(--red-deep);box-shadow:0 0 12px var(--red)}
+.alert-label{font-size:15px;font-weight:400;font-family:'Cormorant Garamond',serif;font-style:italic;color:var(--gold-100)}
+.alert-dd{font-family:'Cormorant Garamond',serif;font-size:22px;font-weight:500;letter-spacing:-.5px}
+
+.input-bar{position:fixed;top:52px;left:0;right:0;z-index:99;padding:10px 24px;background:rgba(20,20,22,.9);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border-bottom:1px solid var(--border);display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.input-bar label{font-size:13px;color:var(--muted)}
+.input-bar input{background:var(--card);border:1px solid var(--border);color:var(--text);padding:6px 12px;border-radius:var(--radius-sm);font-size:14px;width:100px;font-family:'DM Sans',sans-serif;text-align:right}
+.input-bar input:focus{outline:none;border-color:var(--gold-200)}
+.input-bar .sep{color:var(--dim);font-size:13px}
+.btn-fetch{background:var(--card);border:1px solid var(--border);color:var(--gold-200);padding:6px 14px;border-radius:var(--radius-sm);font-size:13px;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .2s}
+.btn-fetch:hover{border-color:var(--gold-200);background:rgba(239,159,39,.1)}
+.btn-fetch:active{transform:scale(.97)}
+.btn-link{background:none;border:none;color:var(--gold-400);font-size:12px;cursor:pointer;text-decoration:underline;font-family:'DM Sans',sans-serif;padding:0}
+.fetch-status{font-size:12px;color:var(--muted);min-width:80px}
+
+.zen-container{position:fixed;top:0;left:0;right:0;bottom:0;display:flex;align-items:center;justify-content:center;transition:opacity .8s;z-index:1}
+.zen-container.hidden{opacity:0;pointer-events:none}
+canvas#phyllotaxis{position:absolute;top:0;left:0;width:100%;height:100%}
+
+.dashboard{position:relative;z-index:10;max-width:700px;margin:0 auto;padding:130px 20px 60px}
+.dashboard.hidden{display:none}
+.dash-header{margin-bottom:32px}
+.dash-header h1{font-size:32px;font-weight:500;color:var(--gold-100);margin-bottom:6px}
+.dash-header p{font-size:14px;color:var(--muted);line-height:1.6}
+
+.stage{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);margin-bottom:12px;overflow:hidden;transition:all .4s}
+.stage.triggered{border-color:var(--gold-400)}
+.stage.active-trigger{border-color:var(--amber);box-shadow:0 0 20px rgba(239,159,39,.08)}
+.stage-head{padding:16px 20px;cursor:pointer;display:flex;align-items:center;justify-content:space-between;user-select:none;transition:background .2s}
+.stage-head:hover{background:rgba(255,255,255,.02)}
+.stage-num{font-family:'Cormorant Garamond',serif;font-size:20px;font-weight:500;margin-right:14px;min-width:28px}
+.stage-title{flex:1}
+.stage-title .name{font-size:15px;font-weight:500}
+.stage-title .desc{font-size:13px;color:var(--muted);margin-top:2px}
+.stage-badge{font-size:13px;padding:4px 12px;border-radius:var(--radius-sm);font-weight:500;margin-left:12px;white-space:nowrap}
+.stage-badge.s1{background:rgba(239,159,39,.15);color:var(--gold-200)}
+.stage-badge.s2{background:rgba(216,90,48,.15);color:var(--coral)}
+.stage-badge.s3{background:rgba(226,75,74,.15);color:var(--red)}
+.stage-badge.s4{background:rgba(121,31,31,.2);color:#f09595}
+.stage-arrow{color:var(--dim);transition:transform .3s;font-size:18px;margin-left:12px}
+.stage.open .stage-arrow{transform:rotate(180deg)}
+.stage-body{max-height:0;overflow:hidden;transition:max-height .5s ease}
+.stage.open .stage-body{max-height:600px}
+.stage-inner{padding:0 20px 20px}
+
+.buy-item{display:flex;align-items:center;padding:10px 0;border-bottom:1px solid rgba(255,255,255,.04)}
+.buy-item:last-of-type{border-bottom:none}
+.buy-ticker{font-weight:500;min-width:65px;color:var(--gold-100);font-size:14px}
+.buy-reason{flex:1;font-size:13px;color:var(--muted)}
+.buy-amount{font-weight:500;font-size:14px;min-width:60px;text-align:right}
+
+.stage-rule{margin-top:12px;padding:10px 14px;border-left:2px solid var(--gold-600);font-size:13px;color:var(--muted);line-height:1.5;background:rgba(239,159,39,.03)}
+
+.progress-wrap{margin-top:14px;display:flex;align-items:center;gap:10px}
+.progress-bar{flex:1;height:4px;background:var(--border);border-radius:2px;overflow:hidden}
+.progress-fill{height:100%;border-radius:2px;transition:width .5s}
+.progress-label{font-size:12px;color:var(--dim);min-width:90px;text-align:right}
+
+.summary-card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:20px;margin-top:24px}
+.summary-card h3{font-size:18px;font-weight:500;color:var(--gold-100);margin-bottom:14px}
+.summary-row{display:flex;justify-content:space-between;padding:7px 0;font-size:14px;border-bottom:1px solid rgba(255,255,255,.04)}
+.summary-row:last-child{border-bottom:none}
+.summary-row .label{color:var(--muted)}
+.summary-row .value{font-weight:500}
+.summary-note{margin-top:14px;padding:12px;background:rgba(29,158,117,.08);border-radius:var(--radius-sm);font-size:13px;color:var(--teal);line-height:1.5}
+
+.footer{text-align:center;padding:40px 20px;font-size:12px;color:var(--dim)}
+
+@media(max-width:600px){
+  .input-bar{flex-direction:column;align-items:stretch;gap:8px}
+  .alert-bar{flex-direction:column;gap:6px;padding:10px 16px}
+  .dash-header h1{font-size:26px}
+}
+</style>
+</head>
+<body>
+
+<div class="alert-bar chill" id="alertBar">
+  <div class="alert-status">
+    <div class="alert-dot green" id="alertDot"></div>
+    <span class="alert-label" id="alertLabel">Dein Portfolio arbeitet. Du nicht.</span>
+  </div>
+  <span class="alert-dd" id="alertDD">Drawdown: 0,0%</span>
+</div>
+
+<div class="input-bar">
+  <label>IWDA Kurs (€)</label>
+  <input type="number" id="priceInput" step="0.01" placeholder="111.73">
+  <span class="sep">ATH:</span>
+  <input type="number" id="athInput" step="0.01" value="115.08">
+  <button class="btn-fetch" id="fetchBtn">Kurs laden</button>
+  <span class="fetch-status" id="fetchStatus"></span>
+  <button class="btn-link" id="linkBtn" title="justETF in neuem Tab">justETF &rarr;</button>
+</div>
+
+<div class="zen-container" id="zenContainer">
+  <canvas id="phyllotaxis"></canvas>
+</div>
+
+<div class="dashboard hidden" id="dashboard">
+  <div class="dash-header">
+    <h1>Nachkauf-Leiter</h1>
+    <p>10.000 € gestaffelter Crash-Plan. Nicht denken, nicht zweifeln &mdash; abarbeiten.</p>
+  </div>
+
+  <div class="stage" id="stage1" data-trigger="10">
+    <div class="stage-head" onclick="toggleStage('stage1')">
+      <span class="stage-num">1</span>
+      <div class="stage-title">
+        <div class="name">Markt &minus;10%</div>
+        <div class="desc">Normale Korrektur. Kann sofort drehen.</div>
+      </div>
+      <span class="stage-badge s1">2.000 €</span>
+      <span class="stage-arrow">&#9662;</span>
+    </div>
+    <div class="stage-body">
+      <div class="stage-inner">
+        <div class="buy-item"><span class="buy-ticker">IWDA</span><span class="buy-reason">Breiter Markt zum Rabatt, kein Einzelrisiko</span><span class="buy-amount">1.200 €</span></div>
+        <div class="buy-item"><span class="buy-ticker">EIMI</span><span class="buy-reason">EM fallen meist st&auml;rker, mehr Rabatt</span><span class="buy-amount">800 €</span></div>
+        <div class="stage-rule">Regel: Nur ETFs. Bei &minus;10% wei&szlig;t du nicht, ob es weiter f&auml;llt. Breite schl&auml;gt Einzelwetten.</div>
+        <div class="progress-wrap">
+          <div class="progress-bar"><div class="progress-fill" style="width:20%;background:var(--gold-200)"></div></div>
+          <span class="progress-label">2.000 / 10.000 €</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="stage" id="stage2" data-trigger="20">
+    <div class="stage-head" onclick="toggleStage('stage2')">
+      <span class="stage-num">2</span>
+      <div class="stage-title">
+        <div class="name">Markt &minus;20%</div>
+        <div class="desc">Echte Korrektur. Medien in Panik.</div>
+      </div>
+      <span class="stage-badge s2">2.500 €</span>
+      <span class="stage-arrow">&#9662;</span>
+    </div>
+    <div class="stage-body">
+      <div class="stage-inner">
+        <div class="buy-item"><span class="buy-ticker">IWDA</span><span class="buy-reason">Core weiter aufstocken</span><span class="buy-amount">1.000 €</span></div>
+        <div class="buy-item"><span class="buy-ticker">NVDA</span><span class="buy-reason">KI-Infrastruktur-Monopol zum Discount</span><span class="buy-amount">750 €</span></div>
+        <div class="buy-item"><span class="buy-ticker">AMZN</span><span class="buy-reason">AWS + E-Commerce, &uuml;berlebt jeden Crash</span><span class="buy-amount">750 €</span></div>
+        <div class="stage-rule">Regel: ETF-Kern + nur Tier-1-&Uuml;berzeugungen. Unternehmen die 100% den Crash &uuml;berleben.</div>
+        <div class="progress-wrap">
+          <div class="progress-bar"><div class="progress-fill" style="width:45%;background:var(--coral)"></div></div>
+          <span class="progress-label">4.500 / 10.000 €</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="stage" id="stage3" data-trigger="30">
+    <div class="stage-head" onclick="toggleStage('stage3')">
+      <span class="stage-num">3</span>
+      <div class="stage-title">
+        <div class="name">Markt &minus;30%</div>
+        <div class="desc">Crash. Alle reden von Rezession.</div>
+      </div>
+      <span class="stage-badge s3">3.000 €</span>
+      <span class="stage-arrow">&#9662;</span>
+    </div>
+    <div class="stage-body">
+      <div class="stage-inner">
+        <div class="buy-item"><span class="buy-ticker">NVDA</span><span class="buy-reason">Nochmal nachlegen, jetzt ~40% unter ATH</span><span class="buy-amount">1.000 €</span></div>
+        <div class="buy-item"><span class="buy-ticker">TSLA</span><span class="buy-reason">Volatilste Position, gr&ouml;&szlig;ter Rebound-Hebel</span><span class="buy-amount">750 €</span></div>
+        <div class="buy-item"><span class="buy-ticker">BRK.B</span><span class="buy-reason">Buffett kauft im Crash selbst &mdash; du reitest mit</span><span class="buy-amount">750 €</span></div>
+        <div class="buy-item"><span class="buy-ticker">BYD</span><span class="buy-reason">China-Crash-Bonus, Sparplan-Erg&auml;nzung</span><span class="buy-amount">500 €</span></div>
+        <div class="stage-rule">Regel: &Uuml;berzeugungstitel aggressiv. Kein Geld f&uuml;r Spekulation. Nur was du 5+ Jahre halten w&uuml;rdest.</div>
+        <div class="progress-wrap">
+          <div class="progress-bar"><div class="progress-fill" style="width:75%;background:var(--red)"></div></div>
+          <span class="progress-label">7.500 / 10.000 €</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="stage" id="stage4" data-trigger="40">
+    <div class="stage-head" onclick="toggleStage('stage4')">
+      <span class="stage-num">4</span>
+      <div class="stage-title">
+        <div class="name">Markt &minus;40%+</div>
+        <div class="desc">Black Swan. Once-in-a-decade Chance.</div>
+      </div>
+      <span class="stage-badge s4">2.500 €</span>
+      <span class="stage-arrow">&#9662;</span>
+    </div>
+    <div class="stage-body">
+      <div class="stage-inner">
+        <div class="buy-item"><span class="buy-ticker">IWDA</span><span class="buy-reason">All-in auf den breiten Markt. Maximaler Hebel.</span><span class="buy-amount">1.500 €</span></div>
+        <div class="buy-item"><span class="buy-ticker">AMZN</span><span class="buy-reason">Letzte Tranche, Durchschnitt massiv gedr&uuml;ckt</span><span class="buy-amount">1.000 €</span></div>
+        <div class="stage-rule">Regel: Letztes Pulver = maximale Sicherheit. Nur IWDA + st&auml;rkster Einzeltitel. Keine Experimente.</div>
+        <div class="progress-wrap">
+          <div class="progress-bar"><div class="progress-fill" style="width:100%;background:var(--red-deep)"></div></div>
+          <span class="progress-label">10.000 / 10.000 €</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="summary-card">
+    <h3>Gesamtverteilung</h3>
+    <div class="summary-row"><span class="label">IWDA (Core-ETF)</span><span class="value">3.700 € (37%)</span></div>
+    <div class="summary-row"><span class="label">NVDA</span><span class="value">1.750 € (18%)</span></div>
+    <div class="summary-row"><span class="label">AMZN</span><span class="value">1.750 € (18%)</span></div>
+    <div class="summary-row"><span class="label">EIMI (EM-ETF)</span><span class="value">800 € (8%)</span></div>
+    <div class="summary-row"><span class="label">TSLA</span><span class="value">750 € (8%)</span></div>
+    <div class="summary-row"><span class="label">BRK.B</span><span class="value">750 € (8%)</span></div>
+    <div class="summary-row"><span class="label">BYD</span><span class="value">500 € (5%)</span></div>
+    <div class="summary-note">45% ETFs, 55% Einzeltitel. Keine Spekulation, kein Verbilligen von Verlierern. Kein MSTR, kein Metaplanet, kein ITM im Crash.</div>
+  </div>
+</div>
+
+<div class="footer">Nachkauf-Leiter &middot; Plan ausf&uuml;hren, nicht nachdenken &middot; Erstellt M&auml;rz 2026</div>
+
+<script>
+const GOLDEN_ANGLE = Math.PI * (3 - Math.sqrt(5));
+const canvas = document.getElementById('phyllotaxis');
+const ctx = canvas.getContext('2d');
+let W, H, animFrame, points = [], phase = 0, maxPoints = 300;
+const zenQuotes = [
+  'Dein Portfolio arbeitet. Du nicht.',
+  'Geduld ist die h\u00F6chste Form der Strategie.',
+  'Der Markt belohnt Langeweile.',
+  'Wer nicht handelt, handelt richtig.',
+  'Zeit im Markt schl\u00E4gt Timing.',
+  'Die beste Position ist Gelassenheit.',
+  'Compound Interest braucht nur eines: Zeit.',
+];
+let quoteIdx = 0;
+
+function resizeCanvas() {
+  W = canvas.width = window.innerWidth;
+  H = canvas.height = window.innerHeight;
+}
+window.addEventListener('resize', resizeCanvas);
+resizeCanvas();
+
+function lerp(a, b, t) { return a + (b - a) * t; }
+
+function hslToStr(h, s, l, a) {
+  return `hsla(${h},${s}%,${l}%,${a})`;
+}
+
+function drawPhyllotaxis() {
+  ctx.clearRect(0, 0, W, H);
+  const cx = W / 2, cy = H / 2;
+  const scale = Math.min(W, H) * 0.0028;
+  const time = phase * 0.003;
+
+  for (let i = 0; i < Math.min(points.length, maxPoints); i++) {
+    const n = i + 1;
+    const angle = n * GOLDEN_ANGLE + time;
+    const r = scale * Math.sqrt(n) * (12 + Math.sin(time * 0.5) * 2);
+    const x = cx + r * Math.cos(angle);
+    const y = cy + r * Math.sin(angle);
+
+    const dist = r / (scale * Math.sqrt(maxPoints) * 14);
+    const alphaBase = 1 - dist * 0.8;
+    const pulse = 0.7 + 0.3 * Math.sin(time * 2 + n * 0.05);
+    const alpha = Math.max(0, alphaBase * pulse);
+
+    const hue = lerp(35, 25, dist);
+    const sat = lerp(80, 50, dist);
+    const light = lerp(65, 40, dist);
+    const dotSize = lerp(3.5, 1.5, dist) * (0.9 + 0.1 * Math.sin(time + n));
+
+    ctx.beginPath();
+    ctx.arc(x, y, dotSize, 0, Math.PI * 2);
+    ctx.fillStyle = hslToStr(hue, sat, light, alpha);
+    ctx.fill();
+
+    if (dotSize > 2.5 && alpha > 0.5) {
+      ctx.beginPath();
+      ctx.arc(x, y, dotSize + 2, 0, Math.PI * 2);
+      ctx.fillStyle = hslToStr(hue, sat, light, alpha * 0.15);
+      ctx.fill();
+    }
+  }
+
+  if (points.length < maxPoints && phase % 2 === 0) {
+    points.push(1);
+  }
+
+  phase++;
+  animFrame = requestAnimationFrame(drawPhyllotaxis);
+}
+
+const priceInput = document.getElementById('priceInput');
+const athInput = document.getElementById('athInput');
+const alertBar = document.getElementById('alertBar');
+const alertDot = document.getElementById('alertDot');
+const alertLabel = document.getElementById('alertLabel');
+const alertDD = document.getElementById('alertDD');
+const zenContainer = document.getElementById('zenContainer');
+const dashboard = document.getElementById('dashboard');
+
+let triggerActive = false;
+setInterval(() => {
+  if (triggerActive) return;
+  quoteIdx = (quoteIdx + 1) % zenQuotes.length;
+  alertLabel.style.opacity = '0';
+  setTimeout(() => {
+    if (!triggerActive) alertLabel.textContent = zenQuotes[quoteIdx];
+    alertLabel.style.opacity = '1';
+  }, 600);
+}, 8000);
+alertLabel.style.transition = 'opacity .6s';
+
+drawPhyllotaxis();
+
+function toggleStage(id) {
+  document.getElementById(id).classList.toggle('open');
+}
+
+function updateDrawdown() {
+  const price = parseFloat(priceInput.value);
+  const ath = parseFloat(athInput.value);
+  if (!price || !ath || price <= 0 || ath <= 0) return;
+
+  const dd = ((ath - price) / ath) * 100;
+  const ddStr = dd.toFixed(1).replace('.', ',');
+  alertDD.textContent = dd > 0 ? `Drawdown: \u2212${ddStr}%` : 'Drawdown: 0,0%';
+
+  alertDot.className = 'alert-dot';
+  alertBar.className = 'alert-bar';
+
+  document.querySelectorAll('.stage').forEach(s => {
+    s.classList.remove('triggered', 'active-trigger', 'open');
+  });
+
+  let highestTrigger = 0;
+  triggerActive = dd >= 10;
+
+  if (dd >= 40) {
+    highestTrigger = 4;
+    alertDot.classList.add('deep-red');
+    alertBar.classList.add('extreme');
+    alertLabel.textContent = 'STUFE 4 \u2014 Black Swan';
+    alertLabel.style.color = '#f09595';
+  } else if (dd >= 30) {
+    highestTrigger = 3;
+    alertDot.classList.add('red');
+    alertBar.classList.add('danger');
+    alertLabel.textContent = 'STUFE 3 \u2014 Crash';
+    alertLabel.style.color = 'var(--red)';
+  } else if (dd >= 20) {
+    highestTrigger = 2;
+    alertDot.classList.add('red');
+    alertBar.classList.add('danger');
+    alertLabel.textContent = 'STUFE 2 \u2014 Korrektur';
+    alertLabel.style.color = 'var(--coral)';
+  } else if (dd >= 10) {
+    highestTrigger = 1;
+    alertDot.classList.add('amber');
+    alertBar.classList.add('warn');
+    alertLabel.textContent = 'STUFE 1 \u2014 Korrektur';
+    alertLabel.style.color = 'var(--gold-200)';
+  } else {
+    alertDot.classList.add('green');
+    alertBar.classList.add('chill');
+    alertLabel.textContent = zenQuotes[quoteIdx];
+    alertLabel.style.color = 'var(--gold-100)';
+    alertLabel.style.fontFamily = "'Cormorant Garamond',serif";
+    alertLabel.style.fontStyle = 'italic';
+    alertLabel.style.fontSize = '15px';
+  }
+
+  if (highestTrigger > 0) {
+    alertLabel.style.fontFamily = "'DM Sans',sans-serif";
+    alertLabel.style.fontStyle = 'normal';
+    alertLabel.style.fontSize = '14px';
+    zenContainer.classList.add('hidden');
+    dashboard.classList.remove('hidden');
+    for (let i = 1; i <= highestTrigger; i++) {
+      const stage = document.getElementById('stage' + i);
+      stage.classList.add('triggered');
+      if (i === highestTrigger) {
+        stage.classList.add('active-trigger');
+        stage.classList.add('open');
+      }
+    }
+  } else {
+    zenContainer.classList.remove('hidden');
+    dashboard.classList.add('hidden');
+  }
+}
+
+priceInput.addEventListener('input', updateDrawdown);
+athInput.addEventListener('input', updateDrawdown);
+
+document.getElementById('linkBtn').addEventListener('click', () => {
+  window.open('https://www.justetf.com/de/etf-profile.html?isin=IE00B4L5Y983#chart', '_blank');
+});
+
+document.getElementById('fetchBtn').addEventListener('click', async () => {
+  const status = document.getElementById('fetchStatus');
+  status.textContent = 'Laden...';
+  status.style.color = 'var(--gold-200)';
+
+  try {
+    const url = 'https://query1.finance.yahoo.com/v8/finance/chart/IWDA.AS?interval=1d&range=1d';
+    const proxyUrl = 'https://api.allorigins.win/get?url=' + encodeURIComponent(url);
+    const resp = await fetch(proxyUrl, { signal: AbortSignal.timeout(8000) });
+    const data = await resp.json();
+    const parsed = JSON.parse(data.contents);
+    const price = parsed.chart.result[0].meta.regularMarketPrice;
+    if (price && price > 0) {
+      priceInput.value = price.toFixed(2);
+      status.textContent = 'Geladen';
+      status.style.color = 'var(--green)';
+      updateDrawdown();
+      setTimeout(() => { status.textContent = ''; }, 3000);
+      return;
+    }
+  } catch (e) {}
+
+  try {
+    const url2 = 'https://query2.finance.yahoo.com/v8/finance/chart/IWDA.AS?interval=1d&range=1d';
+    const resp2 = await fetch(url2, { signal: AbortSignal.timeout(6000) });
+    const data2 = await resp2.json();
+    const price2 = data2.chart.result[0].meta.regularMarketPrice;
+    if (price2 && price2 > 0) {
+      priceInput.value = price2.toFixed(2);
+      status.textContent = 'Geladen';
+      status.style.color = 'var(--green)';
+      updateDrawdown();
+      setTimeout(() => { status.textContent = ''; }, 3000);
+      return;
+    }
+  } catch (e) {}
+
+  status.textContent = 'API nicht erreichbar \u2014 manuell eingeben';
+  status.style.color = 'var(--coral)';
+  setTimeout(() => { status.textContent = ''; }, 5000);
+});
+</script>
+</body>
+</html>
